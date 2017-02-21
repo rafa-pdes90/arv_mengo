@@ -475,7 +475,7 @@ class Aplicacao:
         print('Balanceada pela altura de nodos negros? ' + str(balanceado))
     def desenhaArvore(self):
         self.c1.delete(ALL)
-        self.c1.create_rectangle(0, 0, self.HORIZONTAL, self.VERTICAL, fill="#74AFAD")
+        self.c1.create_rectangle(0, 0, self.HORIZONTAL, self.VERTICAL, fill="#2EAAB3")
         if (self.raiz != None):
             self.xmax = self.c1.winfo_width() - 40 #margem de 40
             self.ymax = self.c1.winfo_height()
@@ -511,5 +511,4 @@ if __name__ == '__main__':
     root.geometry("1024x750")
     ap = Aplicacao(root)
     root.mainloop()
-    input('\nPress any key to continue . . . ')
     os.system('cls' if os.name == 'nt' else 'clear')
