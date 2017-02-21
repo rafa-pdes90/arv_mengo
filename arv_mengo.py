@@ -4,14 +4,15 @@ import os
 import random
 from tkinter import *
 
+global canvasUpdate
 
 class Nodo:
-    def __init__(self, item, esq = None, dir = None, black = True): ###############
+    def __init__(self, item, black, esq = None, dir = None, alt = 1): ###############
         self.item = item
+        self.black = black
         self.esq = esq
         self.dir = dir
-        self.alt = 1
-        self.black = black
+        self.alt = alt
     def __str__(self):
         out = '{'
         if (self != None):
@@ -35,9 +36,9 @@ class ArvoreBinaria:
     def __init__(self, raiz = None):
         self.raiz = raiz
     def criarNodo(self, item, black): ########################
-        return Nodo(item, black = black)
+        return Nodo(item, black)
     def inicializarRaiz(self, item, black): #####################
-        self.raiz = self.criarNodo(item, black=black)
+        self.raiz = self.criarNodo(item, black)
         return self.raiz
     def estaVazia(self):
         return self.raiz == None
@@ -94,7 +95,7 @@ class ArvoreBinaria:
         return raiz
     def inserirMengo(self, item, raiz): ###################
         if (raiz == None):
-            return self.criarNodo(item, black = False), 1
+            return self.criarNodo(item, False), 1
         if (item < raiz.item):
             raiz.esq, caso = self.inserirMengo(item, raiz.esq)
             tio = raiz.dir
@@ -132,7 +133,7 @@ class ArvoreBinaria:
                 caso = 1
         return raiz, caso
     def setNodoToDoubleBlack(self, nodo):
-        if (nodo == None): return self.criarNodo(None, black = 2)
+        if (nodo == None): return self.criarNodo(None, 2)
         nodo.black = 2
         return nodo
     def isNodoDoubleBlack(self, nodo):
@@ -214,7 +215,7 @@ class ArvoreBinaria:
                     raiz.dir = self.deletarMengo(item, raiz.dir)
         return raiz
     def reinserir(self, item, black, raiz):
-        if (raiz == None): return self.criarNodo(item,black)
+        if (raiz == None): return self.criarNodo(item, black)
         if (item < raiz.item):
             raiz.esq = self.reinserir(item, black, raiz.esq)
         elif (item > raiz.item):
@@ -331,7 +332,9 @@ class Aplicacao:
         self.raiz = None
         self.bakArvores = [None]
         self.bakIndex = 0
-        self.desenhaArvore()
+        global canvasUpdate
+        canvasUpdate = lambda: self.desenhaArvore()
+        canvasUpdate()
     def constroiArvore(self, *args):
         try:
             valor = int(self.t1.get())
@@ -347,7 +350,7 @@ class Aplicacao:
             print("Inserindo", str(valor), "...\n")
         self.raiz = self.arvoreBinaria.inserir(valor, self.raiz)
         self.mostrarBalanco()
-        self.desenhaArvore()
+        canvasUpdate()
         self.backupArvore()
     def desconstroiArvore(self, *args):
         try:
@@ -362,7 +365,7 @@ class Aplicacao:
             print("Arvore esvaziada.")
             self.b2['state'] = 'normal'
         self.mostrarBalanco()
-        self.desenhaArvore()
+        canvasUpdate()
         self.backupArvore()
     def geraAleatoria(self, *args):
         #'''
@@ -384,7 +387,7 @@ class Aplicacao:
             self.mostrarBalanco()
             self.b2['state'] = 'normal'
             self.b4['state'] = 'normal'
-        self.desenhaArvore()
+        canvasUpdate()
         self.backupArvore()
         '''
         tamanhos = [random.randint(10,100) for i in range(100)]
@@ -393,14 +396,14 @@ class Aplicacao:
             for i in range(tam):
                 self.raiz = self.arvoreBinaria.inserir(random.randint(10*tam,100*tam), self.raiz)
             teste = self.arvoreBinaria.listaArvoreBFS(self.raiz)
-            self.desenhaArvore()
+            canvasUpdate()
             i = 0
             total = len(teste)-2
             while (i < total):
                 last = len(teste) - 1
                 valor = teste.pop(random.randint(0,last))
                 self.raiz = self.arvoreBinaria.deletar(valor, self.raiz)
-                self.desenhaArvore()
+                canvasUpdate()
                 self.backupArvore()
                 balanceado = self.checarBlackBalanco(self.raiz) != 0
                 if (not balanceado):
@@ -424,7 +427,7 @@ class Aplicacao:
             print("Arvore esvaziada.")
             self.b4['state'] = 'disabled'
         self.b5['state'] = 'normal'
-        self.desenhaArvore()
+        canvasUpdate()
     def refazArvore(self, *args):
         os.system('cls' if os.name == 'nt' else 'clear')
         print("Refazendo recentes alteraçoes...\n")
@@ -442,7 +445,7 @@ class Aplicacao:
         self.b4['state'] = 'normal'
         if (self.bakIndex + 1 == len(self.bakArvores)):
             self.b5['state'] = 'disabled'
-        self.desenhaArvore()
+        canvasUpdate()
     def backupArvore(self):
         if (self.raiz != self.bakArvores[self.bakIndex]):
             self.bakIndex += 1
