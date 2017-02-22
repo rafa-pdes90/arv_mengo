@@ -34,12 +34,15 @@ class Nodo:
 class ArvoreBinaria:
     def __init__(self, raiz = None):
         self.raiz = raiz
-        self.nodosRecentes = [raiz]
+        if (raiz != None):
+            self.nodosRecentes = [raiz.item]
+        else:
+            self.nodosRecentes = [None]
     def criarNodo(self, item, black): ########################
         return Nodo(item, black)
     def inicializarRaiz(self, item, black): #####################
         self.raiz = self.criarNodo(item, black)
-        self.nodosRecentes = [self.raiz]
+        self.nodosRecentes = [item]
         return self.raiz
     def estaVazia(self):
         return self.raiz == None
@@ -82,13 +85,13 @@ class ArvoreBinaria:
     def setNodoToBlack(self, nodo, black = True): ################
         if (nodo != None and nodo.item != None):
             nodo.black = black
-            self.nodosRecentes.append(nodo)
+            self.nodosRecentes.append(nodo.item)
             return nodo
         return
     def setNodoToRed(self, nodo, black = False): ##############
         if (nodo != None and nodo.item != None):
             nodo.black = black
-            self.nodosRecentes.append(nodo)
+            self.nodosRecentes.append(nodo.item)
             return nodo
         return
     def swapNodoCor(self, nodo1, nodo2): ######################
@@ -146,6 +149,7 @@ class ArvoreBinaria:
     def setNodoToDoubleBlack(self, nodo):
         if (nodo == None): return self.criarNodo(None, 2)
         nodo.black = 2
+        self.nodosRecentes.append(nodo.item)
         return nodo
     def isNodoDoubleBlack(self, nodo):
         return (nodo.black == 2 if nodo != None else False)
@@ -153,6 +157,7 @@ class ArvoreBinaria:
         if (nodo.dir != None): return self.delNodoSubstituto(nodo.dir)
         return nodo
     def deletar(self, item, raiz):
+        self.nodosRecentes = []
         raiz = self.deletarMengo(item, raiz)
         if (raiz.item == None):
             del raiz
@@ -169,6 +174,7 @@ class ArvoreBinaria:
             if (raiz.esq != None and raiz.dir != None):
                 subs = self.delNodoSubstituto(raiz.esq)
                 raiz.item = subs.item
+                self.nodosRecentes.append(subs.item)
                 raiz.esq = self.deletarMengo(subs.item, raiz.esq)
             else:
                 if (raiz.esq == None): subs = raiz.dir
@@ -177,6 +183,10 @@ class ArvoreBinaria:
                 if (self.isNodoRed(raiz) or self.isNodoRed(subs)): #############
                     subs = self.setNodoToBlack(subs)
                 else: subs = self.setNodoToDoubleBlack(subs)
+                if (subs != None):
+                    self.nodosRecentes.insert(0, subs.item)
+                else:
+                    self.nodosRecentes.insert(0, None)
                 
                 del raiz
                 return subs
@@ -246,7 +256,7 @@ class ArvoreBinaria:
     def listaArvoreRB(self, raiz):
         if (raiz == None): return
         fila = [raiz]
-        lista = [self.nodosRecentes]
+        lista = [self.nodosRecentes[:]]
         while fila:
             nodo = fila.pop(0)
             if (nodo.esq != None):
