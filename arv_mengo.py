@@ -39,6 +39,7 @@ class ArvoreBinaria:
         return Nodo(item, black)
     def inicializarRaiz(self, item, black): #####################
         self.raiz = self.criarNodo(item, black)
+        self.nodosRecentes = [self.raiz]
         return self.raiz
     def estaVazia(self):
         return self.raiz == None
@@ -81,11 +82,13 @@ class ArvoreBinaria:
     def setNodoToBlack(self, nodo, black = True): ################
         if (nodo != None and nodo.item != None):
             nodo.black = black
+            self.nodosRecentes.append(nodo)
             return nodo
         return
     def setNodoToRed(self, nodo, black = False): ##############
         if (nodo != None and nodo.item != None):
             nodo.black = black
+            self.nodosRecentes.append(nodo)
             return nodo
         return
     def swapNodoCor(self, nodo1, nodo2): ######################
@@ -95,14 +98,13 @@ class ArvoreBinaria:
         self.nodosRecentes.extend([nodo1.item, nodo2.item])
         return nodo1, nodo2
     def inserir(self, item, raiz): ##################
-        self.nodosRecentes = []
         raiz, caso = self.inserirMengo(item, raiz)
         raiz.black = True
         return raiz
     def inserirMengo(self, item, raiz): ###################
         if (raiz == None):
             nodo = self.criarNodo(item, False)
-            self.nodosRecentes.append(item)
+            self.nodosRecentes = [item]
             return nodo, 1
         if (item < raiz.item):
             raiz.esq, caso = self.inserirMengo(item, raiz.esq)
@@ -139,7 +141,6 @@ class ArvoreBinaria:
                 raiz.esq = self.setNodoToBlack(raiz.esq)
                 raiz.dir = self.setNodoToBlack(raiz.dir)
                 raiz = self.setNodoToRed(raiz)
-                self.nodosRecentes.extend([raiz.item, raiz.esq.item, raiz.dir.item])
                 caso = 1
         return raiz, caso
     def setNodoToDoubleBlack(self, nodo):
