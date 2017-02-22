@@ -3,14 +3,15 @@
 import os
 import random
 from tkinter import *
-    
+
+
 class Nodo:
-    def __init__(self, item, black, esq = None, dir = None, alt = 1): ###############
+    # True(1) para nodo black; False(0) para nodo red; (2) para nodo "double black".
+    def __init__(self, item, black, esq = None, dir = None):
         self.item = item
         self.black = black
         self.esq = esq
         self.dir = dir
-        self.alt = alt
     def __str__(self):
         out = '{'
         if (self != None):
@@ -32,130 +33,157 @@ class Nodo:
 
         
 class ArvoreBinaria:
+    # nodosRecentes sao os nodos alterados/criados na última inserçao ou remoçao.
+    # O primeiro elemento é o principal,
+    # por ser ou o nodo inserido ou o substituto daquele que foi removido.
     def __init__(self, raiz = None):
         self.raiz = raiz
         if (raiz != None):
             self.nodosRecentes = [raiz.item]
         else:
             self.nodosRecentes = [None]
-    def criarNodo(self, item, black): ########################
+    # Nodo nodo
+    def criarNodo(self, item, black):
         return Nodo(item, black)
-    def inicializarRaiz(self, item, black): #####################
+    def inicializarRaiz(self, item, black):
         self.raiz = self.criarNodo(item, black)
         self.nodosRecentes = [item]
         return self.raiz
     def estaVazia(self):
         return self.raiz == None
+    # Reseta os nodosRecentes
     def clearRecentes(self):
         self.nodosRecentes = [None]
-    def getBlackAltura(self, raiz): ###################
+    # Calcula a altura de nodos pretos somente,
+    # a qual deve ser constante para os ramos esquerdos e direitos de uma árvore rubro-negra.
+    def getBlackAltura(self, raiz):
         if (raiz == None):
             return 0
         return raiz.black + max(self.getBlackAltura(raiz.esq), self.getBlackAltura(raiz.dir))
-    def getBlackBalanco(self, raiz): ###################
+    # Calcula a diferença de altura de nodos pretos entre os ramos esquerdos e direitos
+    def getBlackBalanco(self, raiz):
         if (raiz == None):
             return 0
         return self.getBlackAltura(raiz.esq) - self.getBlackAltura(raiz.dir)
+    # Calcula a altura total
     def getAltura(self, raiz):
         if (raiz == None):
             return 0
-        return raiz.alt
+        return 1 + max(self.getAltura(raiz.esq), self.getAltura(raiz.dir))
+    # Calcula o balanceamento total, o qual nao precisa estar tao preciso quanto a AVL.
     def getBalanco(self, raiz):
         if (raiz == None):
             return 0
         return self.getAltura(raiz.esq) - self.getAltura(raiz.dir)
+    # Rotaciona à direita
     def rotacaoDir(self, velhaRaiz):
         novaRaiz = velhaRaiz.esq
         velhaRaiz.esq, novaRaiz.dir = novaRaiz.dir, velhaRaiz
-        velhaRaiz.alt = max(self.getAltura(velhaRaiz.esq), self.getAltura(velhaRaiz.dir)) + 1
-        novaRaiz.alt = max(self.getAltura(novaRaiz.esq), self.getAltura(novaRaiz.dir)) + 1
-        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item])
+        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.esq])
         return novaRaiz
+    # Rotaciona à esquerda
     def rotacaoEsq(self, velhaRaiz):
         novaRaiz = velhaRaiz.dir
         velhaRaiz.dir, novaRaiz.esq = novaRaiz.esq, velhaRaiz
-        velhaRaiz.alt = max(self.getAltura(velhaRaiz.esq), self.getAltura(velhaRaiz.dir)) + 1
-        novaRaiz.alt = max(self.getAltura(novaRaiz.esq), self.getAltura(novaRaiz.dir)) + 1
-        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item])
+        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.dir])
         return novaRaiz
-    def isNodoBlack(self, nodo): ##########################
+    # True se o nodo é black ou None, senao false
+    # Nodos "None" sao sempre black
+    def isNodoBlack(self, nodo):
         return (nodo.black if nodo != None else True)
-    def isNodoRed(self, nodo): ##########################
+    # True se o nodo é red, senao false
+    def isNodoRed(self, nodo):
         return (not nodo.black if nodo != None else False)
-    def setNodoToBlack(self, nodo, black = True): ################
+    # Retorna o nodo com o atributo black modificado (padrao: True, ou Black)
+    def setNodoToBlack(self, nodo, black = True):
         if (nodo != None and nodo.item != None):
             nodo.black = black
             self.nodosRecentes.append(nodo.item)
             return nodo
         return
-    def setNodoToRed(self, nodo, black = False): ##############
+    # Retorna o nodo com o atributo black modificado (padrao: False, ou Red)
+    def setNodoToRed(self, nodo, black = False):
         if (nodo != None and nodo.item != None):
             nodo.black = black
             self.nodosRecentes.append(nodo.item)
             return nodo
         return
+    # Retorna os dois nodos de entrada, com seus atributos black trocados
     def swapNodoCor(self, nodo1, nodo2): ######################
         nodo1_blackness = self.isNodoBlack(nodo1)
         nodo1 = self.setNodoToBlack(nodo1, black = self.isNodoBlack(nodo2))
         nodo2 = self.setNodoToBlack(nodo2, black = nodo1_blackness)
         self.nodosRecentes.extend([nodo1.item, nodo2.item])
         return nodo1, nodo2
-    def inserir(self, item, raiz): ##################
+    # Inicializa a recursao da inserçao
+    # Raiz sempre é BLACK.
+    def inserir(self, item, raiz):
         raiz, caso = self.inserirMengo(item, raiz)
         raiz.black = True
         return raiz
-    def inserirMengo(self, item, raiz): ###################
-        if (raiz == None):
+    # Inserção binária recursiva comum, adicionada de balanceamento para a árvore rubro-negra
+    # Sobre a variável "caso":
+    # Se 0 significa que não há mais nenhuma modificação necessária
+    # Se 1 significa que o nodo atual(raiz) é o pai do nodo inserido
+    # Se 2 significa que o nodo atual(raiz) é o avô do nodo inserido
+    def inserirMengo(self, item, raiz):
+        if (raiz == None): # O item nao existe, logo um nodo correspondente é criado. Sempre RED.
             nodo = self.criarNodo(item, False)
             self.nodosRecentes = [item]
             return nodo, 1
-        if (item < raiz.item):
+        if (item < raiz.item): # Recursa para o ramo esquerdo
             raiz.esq, caso = self.inserirMengo(item, raiz.esq)
             tio = raiz.dir
-        elif (item > raiz.item):
+        elif (item > raiz.item): # Recursa para o ramo direito
             raiz.dir, caso = self.inserirMengo(item, raiz.dir)
             tio = raiz.esq
-        else:
+        else: # Item repetido, logo Caso = 0
             self.nodosRecentes = [None]
             return raiz, 0
-        raiz.alt = max(self.getAltura(raiz.esq), self.getAltura(raiz.dir)) + 1
         
         if (caso == 1):
-            if (raiz.black):
+            if (raiz.black): # Se o pai é preto, não precisa modificar mais nada.
                 caso = 0
-            else:
+            else: # Senão, vai depender do tio, logo deve-se retornar ao avô.
                 caso = 2
         elif (caso == 2):
-            if (self.isNodoBlack(tio)):
+            if (self.isNodoBlack(tio)): # Se o tio é preto, a operação é similar a da árvore AVL
                 balanco = self.getBalanco(raiz)
-                if (balanco > 1):
-                    if (item > raiz.esq.item): #Left-Right
+                if (balanco > 1): # Desbalanceada para à esquerda
+                    if (item > raiz.esq.item): #Left-Right, senão Left-Left
                         raiz.esq = self.rotacaoEsq(raiz.esq)
                     raiz = self.rotacaoDir(raiz)
-                    raiz.dir, raiz = self.swapNodoCor(raiz.dir, raiz)
-                    caso = 0
-                elif (balanco < -1):
-                    if (item < raiz.dir.item): #Right-Left
+                    raiz.dir, raiz = self.swapNodoCor(raiz.dir, raiz) # A diferença para à AVL está nesse troca de cor entre raiz e tio
+                    caso = 0 # Ao fim, não é necessária mais nenhuma modificaçao
+                elif (balanco < -1): # Desbalanceada para à direita
+                    if (item < raiz.dir.item): #Right-Left, senão Right-Right
                         raiz.dir = self.rotacaoDir(raiz.dir)
                     raiz = self.rotacaoEsq(raiz)
-                    raiz.esq, raiz = self.swapNodoCor(raiz.esq, raiz)
-                    caso = 0
-            else:
+                    raiz.esq, raiz = self.swapNodoCor(raiz.esq, raiz) # A diferença para à AVL está nesse troca de cor entre raiz e tio
+                    caso = 0 # Ao fim, não é necessária mais nenhuma modificaçao
+            else: # Se o tio é vermelho, deve-se pintar pai e tio de preto, o avô de vermelho, e considerar o avô como o novo filho
                 raiz.esq = self.setNodoToBlack(raiz.esq)
                 raiz.dir = self.setNodoToBlack(raiz.dir)
                 raiz = self.setNodoToRed(raiz)
-                caso = 1
+                caso = 1 # Avô (nodo atual) vira filho.
         return raiz, caso
+    # Retorna o nodo com o atributo black = 2
+    # É um nodo especial para ser usado, temporariamente, no processo de remoçao
     def setNodoToDoubleBlack(self, nodo):
         if (nodo == None): return self.criarNodo(None, 2)
         nodo.black = 2
         self.nodosRecentes.append(nodo.item)
         return nodo
+    # Testa se o nodo é "double black", ou black = 2
     def isNodoDoubleBlack(self, nodo):
         return (nodo.black == 2 if nodo != None else False)
+    # Funçao auxiliar da remocao
+    # Retorna o maior nodo no ramo esquerdo
     def delNodoSubstituto(self, nodo):
         if (nodo.dir != None): return self.delNodoSubstituto(nodo.dir)
         return nodo
+    # Inicializa a recursao da remoçao
+    # Raiz sempre é BLACK
     def deletar(self, item, raiz):
         self.nodosRecentes = []
         raiz = self.deletarMengo(item, raiz)
@@ -164,85 +192,89 @@ class ArvoreBinaria:
             return
         raiz.black = True
         return raiz
+    # Remoçao binária comum, adicionada de reparaçao do balanceamento para a árvore rubro-negra
+    # Certo momento é preciso considerar None como sendo um nodo None com black = 2,
+    # ou seja, um None double black, porém é logo substituído por None.
     def deletarMengo(self, item, raiz):
-        if (raiz == None or raiz.item == None): return raiz
-        if (item < raiz.item):
+        if (raiz == None or raiz.item == None): return raiz # Item não encontrado OU nodo None double black
+        if (item < raiz.item): # Recursa para à esquerda
             raiz.esq = self.deletarMengo(item, raiz.esq)
-        elif (item > raiz.item):
+        elif (item > raiz.item): # Recursa para à direita
             raiz.dir = self.deletarMengo(item, raiz.dir)
         else:
-            if (raiz.esq != None and raiz.dir != None):
-                subs = self.delNodoSubstituto(raiz.esq)
-                raiz.item = subs.item
+            if (raiz.esq != None and raiz.dir != None): # Item localizado, porém contem ambos os ramos
+                subs = self.delNodoSubstituto(raiz.esq) # Encontra-se o maior subsituto no ramo esquerdo
+                raiz.item = subs.item # Troca-se os valores do atual e o substituo
                 self.nodosRecentes.append(subs.item)
-                raiz.esq = self.deletarMengo(subs.item, raiz.esq)
-            else:
-                if (raiz.esq == None): subs = raiz.dir
+                raiz.esq = self.deletarMengo(subs.item, raiz.esq) # Recursa, no ramo esquerdo, para deletar o novo nodo contendo o valor de item
+            else: # Item (re)localizado, com pelo menos um ramo None
+                if (raiz.esq == None): subs = raiz.dir # O substituto será uma filho "válido", se existente, senão None
                 else: subs = raiz.esq
                 
-                if (self.isNodoRed(raiz) or self.isNodoRed(subs)): #############
+                if (self.isNodoRed(raiz) or self.isNodoRed(subs)): # Se ou filho substituto ou o atual for RED, basta setar o substituto para BLACK.
                     subs = self.setNodoToBlack(subs)
-                else: subs = self.setNodoToDoubleBlack(subs)
+                else: subs = self.setNodoToDoubleBlack(subs) # Senão, o substituto torna-se double black(mesmo se for None), e será preciso rebalancear.
                 if (subs != None):
-                    self.nodosRecentes.insert(0, subs.item)
-                else:
-                    self.nodosRecentes.insert(0, None)
+                    self.nodosRecentes.append(subs.item)
                 
                 del raiz
                 return subs
-        
-        irmao = None ####################
+        # Rebalanceamento
+        # Primeiro identifica-se o irmao e seu ramo
+        irmao = None
         if (self.isNodoDoubleBlack(raiz.esq)):
             irmao = raiz.dir
             coxinha = True
         elif (self.isNodoDoubleBlack(raiz.dir)):
             irmao = raiz.esq
             coxinha = False
-        if (irmao != None):
-            if (irmao.black):
-                if (coxinha): raiz.esq = self.setNodoToBlack(raiz.esq)
+        if (irmao != None): # Se há um double black, haverá um irmão válido.
+            if (irmao.black): # Se o irmão for BLACK
+                if (coxinha): raiz.esq = self.setNodoToBlack(raiz.esq) # Desfaz-se a condiçao de double black do substituto
                 else: raiz.dir = self.setNodoToBlack(raiz.dir)
-                if (self.isNodoBlack(irmao.esq) and self.isNodoBlack(irmao.dir)):
-                    irmao = self.setNodoToRed(irmao)
-                    if (self.isNodoBlack(raiz)): raiz = self.setNodoToDoubleBlack(raiz)
-                    else: raiz = self.setNodoToBlack(raiz)
-                else:
-                    if (coxinha):
-                        if (self.isNodoBlack(irmao.dir)): #Right-Left
+                if (self.isNodoBlack(irmao.esq) and self.isNodoBlack(irmao.dir)): # Se os sobrinhos forem ambos BLACK (ou None)
+                    irmao = self.setNodoToRed(irmao) # Irmao é colorido em RED
+                    if (self.isNodoBlack(raiz)): raiz = self.setNodoToDoubleBlack(raiz) # Pai se torna double black se for black
+                    else: raiz = self.setNodoToBlack(raiz) # Ou black se for RED (ou seja, nível de black é aumentado em 1)
+                else: # Se pelo menos um sobrinho for vermelho
+                    if (coxinha): # Irmao no ramo direito
+                        if (self.isNodoBlack(irmao.dir)): # Right-Left, senão Right-Right
                             irmao = self.rotacaoDir(irmao)
                             irmao.dir, irmao = self.swapNodoCor(irmao.dir, irmao)
                         raiz.dir = irmao
                         raiz = self.rotacaoEsq(raiz)
                         raiz.esq, raiz = self.swapNodoCor(raiz.esq, raiz)
                         raiz.dir = self.setNodoToBlack(raiz.dir, black = self.isNodoBlack(raiz.esq))
-                    else:
-                        if (self.isNodoBlack(irmao.esq)): #Left-Right
+                    else: # Irmao no ramo esquerdo
+                        if (self.isNodoBlack(irmao.esq)): # Left-Right, senao Left-Left
                             irmao = self.rotacaoEsq(irmao)
                             irmao.esq, irmao = self.swapNodoCor(irmao.esq, irmao)
                         raiz.esq = irmao
                         raiz = self.rotacaoDir(raiz)
                         raiz.dir, raiz = self.swapNodoCor(raiz.dir, raiz)
                         raiz.esq = self.setNodoToBlack(raiz.esq, black = self.isNodoBlack(raiz.dir))
-            else:
-                if (coxinha):
+            # Se o irmao for RED, é feita algumas operaçoes de rotaçao e swap de cor,
+            # para novamente se visitar o ramo do nodo substituto
+            # Note que o nodo double-black nao foi desfeito ainda.
+            else: 
+                if (coxinha): # Se irmao no ramo esquerdo
                     raiz = self.rotacaoEsq(raiz)
                     raiz.esq, raiz = self.swapNodoCor(raiz.esq, raiz)
                     raiz.dir = self.setNodoToBlack(raiz.dir)
                     raiz.esq = self.deletarMengo(item, raiz.esq)
-                else:
+                else: # Se irmao no ramo direito
                     raiz = self.rotacaoDir(raiz)
                     raiz.dir, raiz = self.swapNodoCor(raiz.dir, raiz)
                     raiz.esq = self.setNodoToBlack(raiz.esq)
                     raiz.dir = self.deletarMengo(item, raiz.dir)
         return raiz
+    # Reconstroi a árvore a partir de uma lista produzida pela funçao 'listaArvoreRB', abaixo
     def reinserir(self, item, black, raiz):
         if (raiz == None): return self.criarNodo(item, black)
         if (item < raiz.item):
             raiz.esq = self.reinserir(item, black, raiz.esq)
         elif (item > raiz.item):
             raiz.dir = self.reinserir(item, black, raiz.dir)
-        else: return raiz
-        raiz.alt = max(self.getAltura(raiz.esq), self.getAltura(raiz.dir)) + 1
         return raiz
     def pesquisar(self, item, raiz):
         if (raiz != None):
@@ -253,6 +285,9 @@ class ArvoreBinaria:
             else:
                 return self.pesquisar(item, raiz.dir)
         return
+    # "Visita" a árvore pelo método da busca em largura (BFS)
+    # e salva os dados da lista necessários para reconstruçao:
+    # nodosRecentes; nodos e suas respectivas cores.
     def listaArvoreRB(self, raiz):
         if (raiz == None): return
         fila = [raiz]
@@ -325,6 +360,7 @@ class ArvoreBinaria:
 
         
 class Aplicacao:
+    # Inicializa a GUI do programa, além de variáveis úteis
     def __init__(self, pai):
         self.f1 = Frame(pai)
         self.f1.pack()
@@ -355,6 +391,7 @@ class Aplicacao:
         self.bakArvores = [None]
         self.bakIndex = 0
         self.desenhaArvore()
+    # Funçao de inserçao na árvore
     def constroiArvore(self, *args):
         try:
             valor = int(self.t1.get())
@@ -367,11 +404,12 @@ class Aplicacao:
             self.b2['state'] = 'normal'
             self.b4['state'] = 'normal'
         else:
-            print("Inserindo", str(valor), "...\n")
+            print("Inserindo", str(valor), "...")
         self.raiz = self.arvoreBinaria.inserir(valor, self.raiz)
         self.mostrarBalanco()
         self.desenhaArvore()
         self.backupArvore()
+    # Funcao de remoçao na árvore
     def desconstroiArvore(self, *args):
         try:
             valor = int(self.t1.get())
@@ -379,14 +417,15 @@ class Aplicacao:
             return
         os.system('cls' if os.name == 'nt' else 'clear')
         self.t1.delete(0, 'end')
-        print("Deletando", str(valor), "...\n")
+        print("Deletando", str(valor), "...")
         self.raiz = self.arvoreBinaria.deletar(valor, self.raiz)
         if (self.raiz == None):
-            print("Arvore esvaziada.")
+            print("\nArvore esvaziada.")
             self.b2['state'] = 'normal'
         self.mostrarBalanco()
         self.desenhaArvore()
         self.backupArvore()
+    # Funçao que gera uma árvore aleatória
     def geraAleatoria(self, *args):
         try:
             valor = int(self.t1.get())
@@ -396,11 +435,11 @@ class Aplicacao:
         os.system('cls' if os.name == 'nt' else 'clear')
         self.raiz = None
         if (valor == 0):
-            print("Arvore esvaziada.")
+            print("\nArvore esvaziada.")
             self.t1.delete(0, 'end')
             self.b2['state'] = 'disabled'
         else:
-            print("Gerando árvore binária aleatória com", str(valor), "nodos...\n")
+            print("Gerando árvore binária aleatória com", str(valor), "nodos...")
             for i in range(valor):
                 self.raiz = self.arvoreBinaria.inserir(random.randint(10*valor,100*valor), self.raiz)
             self.mostrarBalanco()
@@ -430,9 +469,10 @@ class Aplicacao:
                     print('Balanceada pela altura de nodos negros? ' + str(balanceado))
                 i += 1
         '''
+    # Funçao que reconstrói a árvore anterior, se existir
     def desfazArvore(self, *args):
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("Desfazendo a última alteraçao...\n")
+        print("Desfazendo a última alteraçao...")
         self.bakIndex -= 1
         listaArvore = self.bakArvores[self.bakIndex]
         self.raiz = None
@@ -445,18 +485,20 @@ class Aplicacao:
         else:
             self.b2['state'] = 'disabled'
         if (self.bakIndex == 0):
-            print("Arvore esvaziada.")
+            print("\nArvore esvaziada.")
             self.b4['state'] = 'disabled'
         self.b5['state'] = 'normal'
         self.desenhaArvore()
+    # Funçao que refaz as árvores anteriormente desfeitas
+    # desde que nao tenha ocorrido modificações na anterior (atual)
     def refazArvore(self, *args):
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("Refazendo recentes alteraçoes...\n")
+        print("Refazendo recentes alteraçoes...")
         self.bakIndex += 1
         listaArvore = self.bakArvores[self.bakIndex]
         self.raiz = None
         if (listaArvore == None):
-            print("Arvore esvaziada.")
+            print("\nArvore esvaziada.")
             self.b2['state'] = 'disabled'
         else:
             self.b2['state'] = 'normal'
@@ -468,6 +510,7 @@ class Aplicacao:
         if (self.bakIndex + 1 == len(self.bakArvores)):
             self.b5['state'] = 'disabled'
         self.desenhaArvore()
+    # Salva a listaArvoreRB atual, para possibilitar o desfazer/refazer
     def backupArvore(self):
         if (self.raiz != self.bakArvores[self.bakIndex]):
             self.bakIndex += 1
@@ -475,6 +518,8 @@ class Aplicacao:
                 self.bakArvores = self.bakArvores[0:self.bakIndex]
                 self.b5['state'] = 'disabled'
             self.bakArvores.append(self.arvoreBinaria.listaArvoreRB(self.raiz))
+    # Checa o balanço total da árvore.
+    # Ou seja, se está entre [-1, 1]
     def checarBalanco(self, raiz, balanceado = True):
         if (raiz != None):
             balanceado *= self.checarBalanco(raiz.esq)
@@ -484,6 +529,8 @@ class Aplicacao:
                 if (balanco < -1) or (balanco > 1):
                     return False
         return balanceado
+    # Checa o balanço de nodos pretos da árvore
+    # Ou seja, se a altura de ambos os ramos é igual
     def checarBlackBalanco(self, raiz, balanceado = True):
         if (raiz != None):
             balanceado *= self.checarBlackBalanco(raiz.esq)
@@ -493,11 +540,13 @@ class Aplicacao:
                 if balanco != 0:
                     return False
         return balanceado
+    # Mostra no console o resultado das checagens de balanço
     def mostrarBalanco(self):
         balanceado = self.checarBalanco(self.raiz) != 0
-        print('Balanceada pela altura total? ' + str(balanceado))
+        print('\nBalanceada pela altura total? ' + str(balanceado))
         balanceado = self.checarBlackBalanco(self.raiz) != 0
         print('Balanceada pela altura de nodos negros? ' + str(balanceado))
+    # Funçao que desenha a árvore no canvas
     def desenhaArvore(self):
         self.c1.delete(ALL)
         self.c1.create_rectangle(0, 0, self.HORIZONTAL, self.VERTICAL, fill="#2EAAB3")
@@ -508,6 +557,7 @@ class Aplicacao:
             x1 = int(self.xmax/2+20)
             y1 = int(self.ymax/(self.numero_linhas+1))
             self.desenhaNodo(self.raiz,x1,y1,1)
+    # Funçao que desenha o nodo no canvas, complemento da funçao acima
     def desenhaNodo(self, nodo, posX, posY, linha):
         dy = self.ymax/(self.numero_linhas+1)
         numero_colunas = 2**(linha+1)
@@ -533,7 +583,7 @@ class Aplicacao:
         self.c1.create_oval(x1,y1,x2,y2,fill=nodoCor) ############
         self.c1.create_text(posX,posY,text=str(nodo.item),fill="white")
     
-    
+# Execuçao principal
 if __name__ == '__main__':
     os.system('cls' if os.name == 'nt' else 'clear')
     root = Tk(None,None," Desenhando Uma Árvore Binária Rubro-Negra")
