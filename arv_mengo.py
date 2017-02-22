@@ -12,24 +12,6 @@ class Nodo:
         self.black = black
         self.esq = esq
         self.dir = dir
-    def __str__(self):
-        out = '{'
-        if (self != None):
-            out += ' ' + str(self.item) + ' [ '
-            if (self.esq == None and self.dir == None):
-                out += '-'
-            else:
-                if (self.esq != None):
-                    out += str(self.esq.item)
-                else:
-                    out += '-'
-                out += ' ; '
-                if (self.dir != None):
-                    out += str(self.dir.item)
-                else:
-                    out += '-'
-            out += ' ] '
-        return out + '}'
 
         
 class ArvoreBinaria:
@@ -45,12 +27,6 @@ class ArvoreBinaria:
     # Nodo nodo
     def criarNodo(self, item, black):
         return Nodo(item, black)
-    def inicializarRaiz(self, item, black):
-        self.raiz = self.criarNodo(item, black)
-        self.nodosRecentes = [item]
-        return self.raiz
-    def estaVazia(self):
-        return self.raiz == None
     # Reseta os nodosRecentes
     def clearRecentes(self):
         self.nodosRecentes = [None]
@@ -276,15 +252,6 @@ class ArvoreBinaria:
         elif (item > raiz.item):
             raiz.dir = self.reinserir(item, black, raiz.dir)
         return raiz
-    def pesquisar(self, item, raiz):
-        if (raiz != None):
-            if (item == raiz.item):
-                return raiz
-            elif (item < raiz.item):
-                return self.pesquisar(item, raiz.esq)
-            else:
-                return self.pesquisar(item, raiz.dir)
-        return
     # "Visita" a árvore pelo método da busca em largura (BFS)
     # e salva os dados da lista necessários para reconstruçao:
     # nodosRecentes; nodos e suas respectivas cores.
@@ -300,18 +267,6 @@ class ArvoreBinaria:
                 fila.append(nodo.dir)
             lista.append((nodo.item,nodo.black))
         return lista
-    def listaNodosBFS(self, raiz):
-        if (raiz == None): return
-        fila = [raiz]
-        lista = []
-        while fila:
-            nodo = fila.pop(0)
-            if (nodo.esq != None):
-                fila.append(nodo.esq)
-            if (nodo.dir != None):
-                fila.append(nodo.dir)
-            lista.append(nodo)
-        return lista
     def listaArvoreBFS(self, raiz):
         if (raiz == None): return
         fila = [raiz]
@@ -324,41 +279,8 @@ class ArvoreBinaria:
                 fila.append(nodo.dir)
             lista.append(nodo.item)
         return lista
-    def listaNodos(self, raiz):
-        if raiz == None:
-            return []
-        else:
-            return  self.listaNodos(raiz.esq) + [raiz] + self.listaNodos(raiz.dir)
-    def listaArvore(self, raiz):
-        if raiz == None:
-            return []
-        else:
-            return  self.listaArvore(raiz.esq) + [raiz.item] + self.listaArvore(raiz.dir)
-    def listaInvertidaNodos(self, raiz):
-        if raiz == None:
-            return []
-        else:
-            return  self.listaInvertidaNodos(raiz.dir) + [raiz] + self.listaInvertidaNodos(raiz.esq)
-    def listaInvertidaArvore(self, raiz):
-        if raiz == None:
-            return []
-        else:
-            return  self.listaInvertidaArvore(raiz.dir) + [raiz.item] + self.listaInvertidaArvore(raiz.esq)
-    def strNodos(self, raiz):
-        if raiz != None:
-            return str(raiz) + ' ' + self.strNodos(raiz.esq) + self.strNodos(raiz.dir)
-        return ''
-    def strArvore(self, raiz):
-        if raiz != None:
-            return ' [ ' + str(raiz.item) + self.strArvore(raiz.esq) + self.strArvore(raiz.dir) + ' ] '
-        return ''
-    def __str__(self):
-        out = '{'
-        if (not self.estaVazia()):
-            out += ' ' + self.strArvore(self.raiz) + ' '
-        return out + '}'
 
-        
+
 class Aplicacao:
     # Inicializa a GUI do programa, além de variáveis úteis
     def __init__(self, pai):
