@@ -34,6 +34,7 @@ class Nodo:
 class ArvoreBinaria:
     def __init__(self, raiz = None):
         self.raiz = raiz
+        self.nodosRecentes = [raiz]
     def criarNodo(self, item, black): ########################
         return Nodo(item, black)
     def inicializarRaiz(self, item, black): #####################
@@ -41,6 +42,8 @@ class ArvoreBinaria:
         return self.raiz
     def estaVazia(self):
         return self.raiz == None
+    def clearRecentes(self):
+        self.nodosRecentes = [None]
     def getBlackAltura(self, raiz): ###################
         if (raiz == None):
             return 0
@@ -62,12 +65,14 @@ class ArvoreBinaria:
         velhaRaiz.esq, novaRaiz.dir = novaRaiz.dir, velhaRaiz
         velhaRaiz.alt = max(self.getAltura(velhaRaiz.esq), self.getAltura(velhaRaiz.dir)) + 1
         novaRaiz.alt = max(self.getAltura(novaRaiz.esq), self.getAltura(novaRaiz.dir)) + 1
+        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item])
         return novaRaiz
     def rotacaoEsq(self, velhaRaiz):
         novaRaiz = velhaRaiz.dir
         velhaRaiz.dir, novaRaiz.esq = novaRaiz.esq, velhaRaiz
         velhaRaiz.alt = max(self.getAltura(velhaRaiz.esq), self.getAltura(velhaRaiz.dir)) + 1
         novaRaiz.alt = max(self.getAltura(novaRaiz.esq), self.getAltura(novaRaiz.dir)) + 1
+        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item])
         return novaRaiz
     def isNodoBlack(self, nodo): ##########################
         return (nodo.black if nodo != None else True)
@@ -87,14 +92,18 @@ class ArvoreBinaria:
         nodo1_blackness = self.isNodoBlack(nodo1)
         nodo1 = self.setNodoToBlack(nodo1, black = self.isNodoBlack(nodo2))
         nodo2 = self.setNodoToBlack(nodo2, black = nodo1_blackness)
+        self.nodosRecentes.extend([nodo1.item, nodo2.item])
         return nodo1, nodo2
     def inserir(self, item, raiz): ##################
+        self.nodosRecentes = []
         raiz, caso = self.inserirMengo(item, raiz)
         raiz.black = True
         return raiz
     def inserirMengo(self, item, raiz): ###################
         if (raiz == None):
-            return self.criarNodo(item, False), 1
+            nodo = self.criarNodo(item, False)
+            self.nodosRecentes.append(item)
+            return nodo, 1
         if (item < raiz.item):
             raiz.esq, caso = self.inserirMengo(item, raiz.esq)
             tio = raiz.dir
@@ -102,6 +111,7 @@ class ArvoreBinaria:
             raiz.dir, caso = self.inserirMengo(item, raiz.dir)
             tio = raiz.esq
         else:
+            self.nodosRecentes = [None]
             return raiz, 0
         raiz.alt = max(self.getAltura(raiz.esq), self.getAltura(raiz.dir)) + 1
         
@@ -129,6 +139,7 @@ class ArvoreBinaria:
                 raiz.esq = self.setNodoToBlack(raiz.esq)
                 raiz.dir = self.setNodoToBlack(raiz.dir)
                 raiz = self.setNodoToRed(raiz)
+                self.nodosRecentes.extend([raiz.item, raiz.esq.item, raiz.dir.item])
                 caso = 1
         return raiz, caso
     def setNodoToDoubleBlack(self, nodo):
@@ -234,7 +245,7 @@ class ArvoreBinaria:
     def listaArvoreRB(self, raiz):
         if (raiz == None): return
         fila = [raiz]
-        lista = []
+        lista = [self.nodosRecentes]
         while fila:
             nodo = fila.pop(0)
             if (nodo.esq != None):
@@ -384,6 +395,7 @@ class Aplicacao:
             self.mostrarBalanco()
             self.b2['state'] = 'normal'
             self.b4['state'] = 'normal'
+        self.arvoreBinaria.clearRecentes()
         self.desenhaArvore()
         self.backupArvore()
         '''
@@ -415,7 +427,8 @@ class Aplicacao:
         self.raiz = None
         if (listaArvore != None):
             self.b2['state'] = 'normal'
-            for dados in listaArvore:
+            self.arvoreBinaria.nodosRecentes = listaArvore[0]
+            for dados in listaArvore[1:]:
                 self.raiz = self.arvoreBinaria.reinserir(dados[0], dados[1], self.raiz)
             self.mostrarBalanco()
         else:
@@ -436,7 +449,8 @@ class Aplicacao:
             self.b2['state'] = 'disabled'
         else:
             self.b2['state'] = 'normal'
-            for dados in listaArvore:
+            self.arvoreBinaria.nodosRecentes = listaArvore[0]
+            for dados in listaArvore[1:]:
                 self.raiz = self.arvoreBinaria.reinserir(dados[0], dados[1], self.raiz)
             self.mostrarBalanco()
         self.b4['state'] = 'normal'
@@ -500,9 +514,11 @@ class Aplicacao:
         y1 = int(posY-self.tamanho/2)
         x2 = int(posX+self.tamanho/2)
         y2 = int(posY+self.tamanho/2)
-        if (nodo == self.arvoreBinaria.raiz):
-            self.c1.create_oval(x1-3,y1-3,x2+3,y2+3,fill='GOLD')
-        nodoCor = ("black" if self.arvoreBinaria.isNodoBlack(nodo) else "red") ###############
+        if (nodo.item in self.arvoreBinaria.nodosRecentes[1:]):
+            self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='indigo')
+        if (nodo.item == self.arvoreBinaria.nodosRecentes[0]):
+            self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='#5DFC0A')
+        nodoCor = ("black" if self.arvoreBinaria.isNodoBlack(nodo) else "#E34234") ###############
         self.c1.create_oval(x1,y1,x2,y2,fill=nodoCor) ############
         self.c1.create_text(posX,posY,text=str(nodo.item),fill="white")
     
