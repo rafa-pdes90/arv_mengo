@@ -32,24 +32,24 @@ class ArvoreBinaria:
         self.itensRecentes = [None]
     # Calcula a altura de nodos pretos somente,
     # a qual deve ser constante para os ramos esquerdos e direitos de uma árvore rubro-negra.
-    def getBlackAltura(self, raiz):
-        if (raiz == None):
-            return 0
-        return raiz.black + max(self.getBlackAltura(raiz.esq), self.getBlackAltura(raiz.dir))
+    def getAlturas(self, raiz):
+        if (raiz == None): return 1,1
+        altBlackEsq, altRedEsq = self.getAlturas(raiz.esq)
+        altBlackDir, altRedDir = self.getAlturas(raiz.dir)
+        return raiz.black + max(altBlackEsq, altBlackDir), not raiz.black + max(altRedEsq, altRedDir)
     # Calcula a diferença de altura de nodos pretos entre os ramos esquerdos e direitos
     def getBlackBalanco(self, raiz):
-        if (raiz == None):
-            return 0
-        return self.getBlackAltura(raiz.esq) - self.getBlackAltura(raiz.dir)
+        if (raiz == None): return True
+        altBlackEsq, altRedEsq = self.getAlturas(raiz.esq)
+        altBlackDir, altRedDir = self.getAlturas(raiz.dir)
+        return (altBlackEsq - altBlackDir == 0) and altRedEsq <= altBlackEsq and altRedDir <= altBlackDir
     # Calcula a altura total
     def getAltura(self, raiz):
-        if (raiz == None):
-            return 0
+        if (raiz == None): return 0
         return 1 + max(self.getAltura(raiz.esq), self.getAltura(raiz.dir))
     # Calcula o balanceamento total, o qual nao precisa estar tao preciso quanto a AVL.
     def getBalanco(self, raiz):
-        if (raiz == None):
-            return 0
+        if (raiz == None): return 0
         return self.getAltura(raiz.esq) - self.getAltura(raiz.dir)
     # Rotaciona à direita
     def rotacaoDir(self, velhaRaiz):
@@ -274,6 +274,7 @@ class ArvoreBinaria:
         if (raiz == None or raiz.esq == None or raiz.dir == None): return False
         return self.isNodoBlack(raiz) and self.isNodoBlack(raiz.esq) and self.isNodoBlack(raiz.dir) and self.isNodoBlack(raiz.esq.esq) and self.isNodoBlack(raiz.esq.dir) and self.isNodoBlack(raiz.dir.esq) and self.isNodoBlack(raiz.dir.dir)
     def redistribuirCores(self, raiz):
+        self.itensRecentes = [None]
         if (raiz == None): return
         fila = []
         filaAux = [raiz]
@@ -287,6 +288,7 @@ class ArvoreBinaria:
                 if (not familiasRed):
                     nodo.esq = self.setNodoToRed(nodo.esq)
                     nodo.dir = self.setNodoToRed(nodo.dir)
+                    self.itensRecentes.extend([nodo.esq.item, nodo.dir.item])
                     fila.append(nodo.esq)
                     fila.append(nodo.dir)
                 else:
@@ -298,6 +300,7 @@ class ArvoreBinaria:
                     filaAux.append(nodo.esq)
                 if (nodo.dir != None):
                     filaAux.append(nodo.dir)
+        self.itensRecentes.append(None)
         return raiz
     def pesquisar(self, item, raiz):
         if (raiz != None):
@@ -361,6 +364,8 @@ class Aplicacao:
         self.b5.pack(side=LEFT)
         self.b6 = Button(self.f2, text = "Refazer", state = "disabled", command = self.refazArvore)
         self.b6.pack(side=RIGHT)
+        self.b7 = Button(pai, text = "Recolorir", state = "disabled", command = self.recolorirArvore)
+        self.b7.pack()
         self.c1 = Canvas(pai,width=1024,height=768)
         self.c1.pack()
         self.HORIZONTAL = 1024
@@ -372,6 +377,30 @@ class Aplicacao:
         self.bakIndex = 0
         self.itemAchado = None
         self.desenhaArvore()
+    # Funçao de inserçao na árvore
+    def constroiArvore(self, *args):
+        try:
+            valor = int(self.t1.get())
+        except Exception:
+            return
+        os.system('cls' if os.name == 'nt' else 'clear')
+        self.t1.delete(0, 'end')
+        if self.raiz == None:
+            print("Criando com raiz ", str(valor), "...")
+            self.b2['state'] = 'normal'
+            self.b3['state'] = 'normal'
+            self.b5['state'] = 'normal'
+            self.b7['state'] = 'normal'
+        else:
+            print("Inserindo", str(valor), "...")
+        self.raiz = self.arvoreBinaria.inserir(valor, self.raiz)
+        if (self.arvoreBinaria.itensRecentes[0] == None): # Se valor já existe
+            self.itemAchado = valor
+        self.mostrarBalanco()
+        self.desenhaArvore()
+        self.backupArvore()
+        self.itemAchado = None
+    # Funcao de pesquisa na árvore
     def pesquisarNaArvore(self, *args):
         try:
             valor = int(self.t1.get())
@@ -386,28 +415,6 @@ class Aplicacao:
             self.itemAchado = valor
             self.desenhaArvore()
             self.itemAchado = None
-    # Funçao de inserçao na árvore
-    def constroiArvore(self, *args):
-        try:
-            valor = int(self.t1.get())
-        except Exception:
-            return
-        os.system('cls' if os.name == 'nt' else 'clear')
-        self.t1.delete(0, 'end')
-        if self.raiz == None:
-            print("Criando com raiz ", str(valor), "...")
-            self.b2['state'] = 'normal'
-            self.b3['state'] = 'normal'
-            self.b5['state'] = 'normal'
-        else:
-            print("Inserindo", str(valor), "...")
-        self.raiz = self.arvoreBinaria.inserir(valor, self.raiz)
-        if (self.arvoreBinaria.itensRecentes[0] == None): # Se valor já existe
-            self.itemAchado = valor
-        self.mostrarBalanco()
-        self.desenhaArvore()
-        self.backupArvore()
-        self.itemAchado = None
     # Funcao de remoçao na árvore
     def desconstroiArvore(self, *args):
         try:
@@ -422,6 +429,7 @@ class Aplicacao:
             print("\nArvore esvaziada.")
             self.b2['state'] = 'disabled'
             self.b3['state'] = 'disabled'
+            self.b7['state'] = 'disabled'
         self.mostrarBalanco()
         self.desenhaArvore()
         self.backupArvore()
@@ -439,6 +447,7 @@ class Aplicacao:
             self.t1.delete(0, 'end')
             self.b2['state'] = 'disabled'
             self.b3['state'] = 'disabled'
+            self.b7['state'] = 'disabled'
         else:
             print("Gerando árvore binária aleatória com", str(valor), "nodos...")
             for i in range(valor):
@@ -447,6 +456,7 @@ class Aplicacao:
             self.b2['state'] = 'normal'
             self.b3['state'] = 'normal'
             self.b5['state'] = 'normal'
+            self.b7['state'] = 'normal'
         self.arvoreBinaria.clearRecentes()
         self.desenhaArvore()
         self.backupArvore()
@@ -474,9 +484,11 @@ class Aplicacao:
         if (self.raiz == None):
             self.b2['state'] = 'disabled'
             self.b3['state'] = 'disabled'
+            self.b7['state'] = 'disabled'
         else:
             self.b2['state'] = 'normal'
             self.b3['state'] = 'normal'
+            self.b7['state'] = 'normal'
         '''
     # Funçao que reconstrói a árvore anterior, se existir
     def desfazArvore(self, *args):
@@ -488,6 +500,7 @@ class Aplicacao:
         if (listaArvore != None):
             self.b2['state'] = 'normal'
             self.b3['state'] = 'normal'
+            self.b7['state'] = 'normal'
             self.arvoreBinaria.itensRecentes = listaArvore[0]
             for dados in listaArvore[1:]:
                 self.raiz = self.arvoreBinaria.reinserir(dados[0], dados[1], self.raiz)
@@ -495,6 +508,7 @@ class Aplicacao:
         else:
             self.b2['state'] = 'disabled'
             self.b3['state'] = 'disabled'
+            self.b7['state'] = 'disabled'
         if (self.bakIndex == 0):
             print("\nArvore esvaziada.")
             self.b5['state'] = 'disabled'
@@ -512,9 +526,11 @@ class Aplicacao:
             print("\nArvore esvaziada.")
             self.b2['state'] = 'disabled'
             self.b3['state'] = 'disabled'
+            self.b7['state'] = 'disabled'
         else:
             self.b2['state'] = 'normal'
             self.b3['state'] = 'normal'
+            self.b7['state'] = 'normal'
             self.arvoreBinaria.itensRecentes = listaArvore[0]
             for dados in listaArvore[1:]:
                 self.raiz = self.arvoreBinaria.reinserir(dados[0], dados[1], self.raiz)
@@ -523,6 +539,17 @@ class Aplicacao:
         if (self.bakIndex + 1 == len(self.bakArvores)):
             self.b6['state'] = 'disabled'
         self.desenhaArvore()
+    # Recolore a árvore de forma a ter uma melhor distribuiçao de pretos e vermelhos
+    def recolorirArvore(self, *args):
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("Recolorindo a árvore...")
+        self.raiz = self.arvoreBinaria.redistribuirCores(self.raiz)
+        self.b5['state'] = 'normal'
+        self.b6['state'] = 'disabled'
+        self.b7['state'] = 'disabled'
+        self.mostrarBalanco()
+        self.desenhaArvore()
+        self.backupArvore()
     # Salva a listaArvoreRB atual, para possibilitar o desfazer/refazer
     def backupArvore(self):
         if (self.raiz != self.bakArvores[self.bakIndex]):
@@ -533,25 +560,24 @@ class Aplicacao:
             self.bakArvores.append(self.arvoreBinaria.listaArvoreRB(self.raiz))
     # Checa o balanço total da árvore.
     # Ou seja, se está entre [-1, 1]
-    def checarBalanco(self, raiz, balanceado = True):
-        if (raiz != None):
-            balanceado *= self.checarBalanco(raiz.esq)
-            balanceado *= self.checarBalanco(raiz.dir)
-            if (balanceado):
-                balanco = self.arvoreBinaria.getBalanco(raiz)
-                if (balanco < -1) or (balanco > 1):
-                    return False
+    def checarBalanco(self, raiz):
+        if (raiz == None): return True
+        balanceado = True
+        balanceado *= self.checarBalanco(raiz.esq)
+        balanceado *= self.checarBalanco(raiz.dir)
+        if (balanceado):
+            balanco = self.arvoreBinaria.getBalanco(raiz)
+            return (balanco >= -1) and (balanco <= 1)
         return balanceado
     # Checa o balanço de nodos pretos da árvore
     # Ou seja, se a altura de ambos os ramos é igual
-    def checarBlackBalanco(self, raiz, balanceado = True):
-        if (raiz != None):
-            balanceado *= self.checarBlackBalanco(raiz.esq)
-            balanceado *= self.checarBlackBalanco(raiz.dir)
-            if (balanceado):
-                balanco = self.arvoreBinaria.getBlackBalanco(raiz)
-                if balanco != 0:
-                    return False
+    def checarBlackBalanco(self, raiz):
+        if (raiz == None): return True
+        balanceado = True
+        balanceado *= self.checarBlackBalanco(raiz.esq)
+        balanceado *= self.checarBlackBalanco(raiz.dir)
+        if (balanceado):
+            return self.arvoreBinaria.getBlackBalanco(raiz)
         return balanceado
     # Mostra no console o resultado das checagens de balanço
     def mostrarBalanco(self):
