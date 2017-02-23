@@ -55,12 +55,16 @@ class ArvoreBinaria:
     def rotacaoDir(self, velhaRaiz):
         novaRaiz = velhaRaiz.esq
         velhaRaiz.esq, novaRaiz.dir = novaRaiz.dir, velhaRaiz
+        if (velhaRaiz.item == self.nodosRecentes[0]):
+            self.nodosRecentes[0] = novaRaiz.item
         self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.esq])
         return novaRaiz
     # Rotaciona à esquerda
     def rotacaoEsq(self, velhaRaiz):
         novaRaiz = velhaRaiz.dir
         velhaRaiz.dir, novaRaiz.esq = novaRaiz.esq, velhaRaiz
+        if (velhaRaiz.item == self.nodosRecentes[0]):
+            self.nodosRecentes[0] = novaRaiz.item
         self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.dir])
         return novaRaiz
     # True se o nodo é black ou None, senao false
@@ -329,7 +333,7 @@ class Aplicacao:
         self.raiz = None
         self.bakArvores = [None]
         self.bakIndex = 0
-        self.nodoAchado = None
+        self.itemAchado = None
         self.desenhaArvore()
     def pesquisarNaArvore(self, *args):
         try:
@@ -337,13 +341,14 @@ class Aplicacao:
         except Exception:
             return
         os.system('cls' if os.name == 'nt' else 'clear')
-        self.nodoAchado = self.arvoreBinaria.pesquisar(valor, self.raiz)
-        if (self.nodoAchado == None):
+        nodo = self.arvoreBinaria.pesquisar(valor, self.raiz)
+        if (nodo == None):
             print('Nodo', valor, 'nao localizado.')
         else:
             print('Nodo', valor, 'localizado.')
+            self.itemAchado = valor
             self.desenhaArvore()
-            self.nodoAchado = None
+            self.itemAchado = None
     # Funçao de inserçao na árvore
     def constroiArvore(self, *args):
         try:
@@ -360,6 +365,8 @@ class Aplicacao:
         else:
             print("Inserindo", str(valor), "...")
         self.raiz = self.arvoreBinaria.inserir(valor, self.raiz)
+        if (self.arvoreBinaria.nodosRecentes[0] == None): # Se valor já existe
+            self.itemAchado = valor
         self.mostrarBalanco()
         self.desenhaArvore()
         self.backupArvore()
@@ -536,12 +543,12 @@ class Aplicacao:
         y1 = int(posY-self.tamanho/2)
         x2 = int(posX+self.tamanho/2)
         y2 = int(posY+self.tamanho/2)
-        if (self.nodoAchado == None):
+        if (self.itemAchado == None):
             if (nodo.item in self.arvoreBinaria.nodosRecentes[1:]):
                 self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='indigo')
             if (nodo.item == self.arvoreBinaria.nodosRecentes[0]):
                 self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='#5DFC0A')
-        elif (nodo.item == self.nodoAchado.item):
+        elif (nodo.item == self.itemAchado):
             self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='gold')
         nodoCor = ("black" if self.arvoreBinaria.isNodoBlack(nodo) else "#E34234") ###############
         self.c1.create_oval(x1,y1,x2,y2,fill=nodoCor) ############
@@ -555,3 +562,4 @@ if __name__ == '__main__':
     ap = Aplicacao(root)
     root.mainloop()
     os.system('cls' if os.name == 'nt' else 'clear')
+    
