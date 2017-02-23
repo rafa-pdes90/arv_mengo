@@ -15,21 +15,21 @@ class Nodo:
 
         
 class ArvoreBinaria:
-    # nodosRecentes sao os nodos alterados/criados na última inserçao ou remoçao.
+    # itensRecentes sao os nodos alterados/criados na última inserçao ou remoçao.
     # O primeiro elemento é o principal,
     # por ser ou o nodo inserido ou o substituto daquele que foi removido.
     def __init__(self, raiz = None):
         self.raiz = raiz
         if (raiz != None):
-            self.nodosRecentes = [raiz.item]
+            self.itensRecentes = [raiz.item, None]
         else:
-            self.nodosRecentes = [None]
+            self.itensRecentes = [None]
     # Nodo nodo
     def criarNodo(self, item, black):
         return Nodo(item, black)
-    # Reseta os nodosRecentes
+    # Reseta os itensRecentes
     def clearRecentes(self):
-        self.nodosRecentes = [None]
+        self.itensRecentes = [None]
     # Calcula a altura de nodos pretos somente,
     # a qual deve ser constante para os ramos esquerdos e direitos de uma árvore rubro-negra.
     def getBlackAltura(self, raiz):
@@ -55,17 +55,17 @@ class ArvoreBinaria:
     def rotacaoDir(self, velhaRaiz):
         novaRaiz = velhaRaiz.esq
         velhaRaiz.esq, novaRaiz.dir = novaRaiz.dir, velhaRaiz
-        if (velhaRaiz.item == self.nodosRecentes[0]):
-            self.nodosRecentes[0] = novaRaiz.item
-        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.esq])
+        if (velhaRaiz.item == self.itensRecentes[0]):
+            self.itensRecentes[0] = novaRaiz.item
+        self.itensRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.esq])
         return novaRaiz
     # Rotaciona à esquerda
     def rotacaoEsq(self, velhaRaiz):
         novaRaiz = velhaRaiz.dir
         velhaRaiz.dir, novaRaiz.esq = novaRaiz.esq, velhaRaiz
-        if (velhaRaiz.item == self.nodosRecentes[0]):
-            self.nodosRecentes[0] = novaRaiz.item
-        self.nodosRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.dir])
+        if (velhaRaiz.item == self.itensRecentes[0]):
+            self.itensRecentes[0] = novaRaiz.item
+        self.itensRecentes.extend([velhaRaiz.item, novaRaiz.item, velhaRaiz.dir])
         return novaRaiz
     # True se o nodo é black ou None, senao false
     # Nodos "None" sao sempre black
@@ -78,14 +78,14 @@ class ArvoreBinaria:
     def setNodoToBlack(self, nodo, black = True):
         if (nodo != None and nodo.item != None):
             nodo.black = black
-            self.nodosRecentes.append(nodo.item)
+            self.itensRecentes.append(nodo.item)
             return nodo
         return
     # Retorna o nodo com o atributo black modificado (padrao: False, ou Red)
     def setNodoToRed(self, nodo, black = False):
         if (nodo != None and nodo.item != None):
             nodo.black = black
-            self.nodosRecentes.append(nodo.item)
+            self.itensRecentes.append(nodo.item)
             return nodo
         return
     # Retorna os dois nodos de entrada, com seus atributos black trocados
@@ -93,13 +93,14 @@ class ArvoreBinaria:
         nodo1_blackness = self.isNodoBlack(nodo1)
         nodo1 = self.setNodoToBlack(nodo1, black = self.isNodoBlack(nodo2))
         nodo2 = self.setNodoToBlack(nodo2, black = nodo1_blackness)
-        self.nodosRecentes.extend([nodo1.item, nodo2.item])
+        self.itensRecentes.extend([nodo1.item, nodo2.item])
         return nodo1, nodo2
     # Inicializa a recursao da inserçao
     # Raiz sempre é BLACK.
     def inserir(self, item, raiz):
         raiz, caso = self.inserirMengo(item, raiz)
         raiz.black = True
+        self.itensRecentes.append(None)
         return raiz
     # Inserçao binária recursiva comum, adicionada de balanceamento para a árvore rubro-negra
     # Sobre a variável "caso":
@@ -109,7 +110,7 @@ class ArvoreBinaria:
     def inserirMengo(self, item, raiz):
         if (raiz == None): # O item nao existe, logo um nodo correspondente é criado. Sempre RED.
             nodo = self.criarNodo(item, False)
-            self.nodosRecentes = [item]
+            self.itensRecentes = [item]
             return nodo, 1
         if (item < raiz.item): # Recursa para o ramo esquerdo
             raiz.esq, caso = self.inserirMengo(item, raiz.esq)
@@ -118,7 +119,7 @@ class ArvoreBinaria:
             raiz.dir, caso = self.inserirMengo(item, raiz.dir)
             tio = raiz.esq
         else: # Item repetido, logo Caso = 0
-            self.nodosRecentes = [None]
+            self.itensRecentes = []
             return raiz, 0
         
         if (caso == 1):
@@ -152,7 +153,7 @@ class ArvoreBinaria:
     def setNodoToDoubleBlack(self, nodo):
         if (nodo == None): return self.criarNodo(None, 2)
         nodo.black = 2
-        self.nodosRecentes.append(nodo.item)
+        self.itensRecentes.append(nodo.item)
         return nodo
     # Testa se o nodo é "double black", ou black = 2
     def isNodoDoubleBlack(self, nodo):
@@ -165,19 +166,26 @@ class ArvoreBinaria:
     # Inicializa a recursao da remoçao
     # Raiz sempre é BLACK
     def deletar(self, item, raiz):
-        self.nodosRecentes = []
+        if (raiz == None): return
+        self.itensRecentes = []
+        itemAtual = raiz.item
         raiz = self.deletarMengo(item, raiz)
         if (raiz.item == None):
             del raiz
             return
+        elif (raiz.item == itemAtual):
+            if (raiz.black):
+                self.itensRecentes[:] = [item for item in self.itensRecentes if item != raiz.item]
         raiz.black = True
+        self.itensRecentes.append(self.itensRecentes.pop(0))
+        self.itensRecentes.insert(0, None)
         return raiz
     # Remoçao binária comum, adicionada de reparaçao do balanceamento para a árvore rubro-negra
     # Certo momento é preciso considerar None como sendo um nodo None com black = 2,
     # ou seja, um None double black, porém é logo substituído por None.
     def deletarMengo(self, item, raiz):
         if (raiz == None): # Item nao encontrado
-            self.nodosRecentes.append(None)
+            self.itensRecentes.append(None)
             return raiz
         if (raiz.item == None): # nodo None double black
             return raiz
@@ -188,16 +196,16 @@ class ArvoreBinaria:
         else:
             if (raiz.esq != None and raiz.dir != None): # Item localizado, porém contem ambos os ramos
                 subs = self.delNodoSubstituto(raiz.esq) # Encontra-se o maior subsituto no ramo esquerdo
-                self.nodosRecentes.append(subs.item)
+                self.itensRecentes.append(subs.item)
                 raiz.item = subs.item # Troca-se os valores do atual e o substituo
                 raiz.esq = self.deletarMengo(subs.item, raiz.esq) # Recursa, no ramo esquerdo, para deletar o novo nodo contendo o valor de item
             else: # Item (re)localizado, com pelo menos um ramo None
                 if (raiz.esq == None): subs = raiz.dir # O substituto será uma filho "válido", se existente, senao None
                 else: subs = raiz.esq
                 if (subs != None):
-                    self.nodosRecentes.append(subs.item)
+                    self.itensRecentes.append(subs.item)
                 else:
-                    self.nodosRecentes.append(None)
+                    self.itensRecentes.append(None)
                 if (self.isNodoRed(raiz) or self.isNodoRed(subs)): # Se ou filho substituto ou o atual for RED, basta setar o substituto para BLACK.
                     subs = self.setNodoToBlack(subs)
                 else: subs = self.setNodoToDoubleBlack(subs) # Senao, o substituto torna-se double black(mesmo se for None), e será preciso rebalancear.
@@ -262,6 +270,35 @@ class ArvoreBinaria:
         elif (item > raiz.item):
             raiz.dir = self.reinserir(item, black, raiz.dir)
         return raiz
+    def isFamiliaBlack(self, raiz):
+        if (raiz == None or raiz.esq == None or raiz.dir == None): return False
+        return self.isNodoBlack(raiz) and self.isNodoBlack(raiz.esq) and self.isNodoBlack(raiz.dir) and self.isNodoBlack(raiz.esq.esq) and self.isNodoBlack(raiz.esq.dir) and self.isNodoBlack(raiz.dir.esq) and self.isNodoBlack(raiz.dir.dir)
+    def redistribuirCores(self, raiz):
+        if (raiz == None): return
+        fila = []
+        filaAux = [raiz]
+        familiasRed = False
+        while filaAux:
+            for nodo in filaAux:
+                if (not self.isFamiliaBlack(nodo)):
+                    familiasRed = True
+            while filaAux:
+                nodo = filaAux.pop()
+                if (not familiasRed):
+                    nodo.esq = self.setNodoToRed(nodo.esq)
+                    nodo.dir = self.setNodoToRed(nodo.dir)
+                    fila.append(nodo.esq)
+                    fila.append(nodo.dir)
+                else:
+                    fila.append(nodo)
+            familiasRed = False
+            while fila:
+                nodo = fila.pop()
+                if (nodo.esq != None):
+                    filaAux.append(nodo.esq)
+                if (nodo.dir != None):
+                    filaAux.append(nodo.dir)
+        return raiz
     def pesquisar(self, item, raiz):
         if (raiz != None):
             if (item == raiz.item):
@@ -273,11 +310,11 @@ class ArvoreBinaria:
         return
     # "Visita" a árvore pelo método da busca em largura (BFS)
     # e salva os dados da lista necessários para reconstruçao:
-    # nodosRecentes; nodos e suas respectivas cores.
+    # itensRecentes; nodos e suas respectivas cores.
     def listaArvoreRB(self, raiz):
         if (raiz == None): return
         fila = [raiz]
-        lista = [self.nodosRecentes[:]]
+        lista = [self.itensRecentes[:]]
         while fila:
             nodo = fila.pop(0)
             if (nodo.esq != None):
@@ -365,11 +402,12 @@ class Aplicacao:
         else:
             print("Inserindo", str(valor), "...")
         self.raiz = self.arvoreBinaria.inserir(valor, self.raiz)
-        if (self.arvoreBinaria.nodosRecentes[0] == None): # Se valor já existe
+        if (self.arvoreBinaria.itensRecentes[0] == None): # Se valor já existe
             self.itemAchado = valor
         self.mostrarBalanco()
         self.desenhaArvore()
         self.backupArvore()
+        self.itemAchado = None
     # Funcao de remoçao na árvore
     def desconstroiArvore(self, *args):
         try:
@@ -413,6 +451,7 @@ class Aplicacao:
         self.desenhaArvore()
         self.backupArvore()
         '''
+        self.b5['state'] = 'normal'
         tamanhos = [random.randint(10,100) for i in range(100)]
         for tam in tamanhos:
             self.raiz = None
@@ -432,6 +471,12 @@ class Aplicacao:
                 if (not balanceado):
                     print('Balanceada pela altura de nodos negros? ' + str(balanceado))
                 i += 1
+        if (self.raiz == None):
+            self.b2['state'] = 'disabled'
+            self.b3['state'] = 'disabled'
+        else:
+            self.b2['state'] = 'normal'
+            self.b3['state'] = 'normal'
         '''
     # Funçao que reconstrói a árvore anterior, se existir
     def desfazArvore(self, *args):
@@ -443,7 +488,7 @@ class Aplicacao:
         if (listaArvore != None):
             self.b2['state'] = 'normal'
             self.b3['state'] = 'normal'
-            self.arvoreBinaria.nodosRecentes = listaArvore[0]
+            self.arvoreBinaria.itensRecentes = listaArvore[0]
             for dados in listaArvore[1:]:
                 self.raiz = self.arvoreBinaria.reinserir(dados[0], dados[1], self.raiz)
             self.mostrarBalanco()
@@ -470,7 +515,7 @@ class Aplicacao:
         else:
             self.b2['state'] = 'normal'
             self.b3['state'] = 'normal'
-            self.arvoreBinaria.nodosRecentes = listaArvore[0]
+            self.arvoreBinaria.itensRecentes = listaArvore[0]
             for dados in listaArvore[1:]:
                 self.raiz = self.arvoreBinaria.reinserir(dados[0], dados[1], self.raiz)
             self.mostrarBalanco()
@@ -544,10 +589,12 @@ class Aplicacao:
         x2 = int(posX+self.tamanho/2)
         y2 = int(posY+self.tamanho/2)
         if (self.itemAchado == None):
-            if (nodo.item in self.arvoreBinaria.nodosRecentes[1:]):
+            if (nodo.item in self.arvoreBinaria.itensRecentes[1:-1]):
                 self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='indigo')
-            if (nodo.item == self.arvoreBinaria.nodosRecentes[0]):
+            if (nodo.item == self.arvoreBinaria.itensRecentes[0]):
                 self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='#5DFC0A')
+            if (nodo.item == self.arvoreBinaria.itensRecentes[-1]):
+                self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='magenta')
         elif (nodo.item == self.itemAchado):
             self.c1.create_oval(x1-5,y1-5,x2+5,y2+5,fill='gold')
         nodoCor = ("black" if self.arvoreBinaria.isNodoBlack(nodo) else "#E34234") ###############
@@ -562,4 +609,3 @@ if __name__ == '__main__':
     ap = Aplicacao(root)
     root.mainloop()
     os.system('cls' if os.name == 'nt' else 'clear')
-    
